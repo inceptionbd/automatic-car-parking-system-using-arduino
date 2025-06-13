@@ -1,0 +1,90 @@
+#include <LiquidCrystal.h>
+
+// LCD Pins: RS, EN, D4, D5, D6, D7
+LiquidCrystal lcd(7, 6, 5, 4, 3, 2);
+
+const int irPin = 8;          // IR sensor pin
+const int motorIn1 = 9;       // Motor driver IN1
+const int motorIn2 = 10;      // Motor driver IN2
+
+int irState = LOW;
+int lastIrState = HIGH;       // To detect new car only once
+int carCount = 0;
+const int maxSlots = 5;
+
+void setup() {
+  lcd.begin(16, 2);
+  pinMode(irPin, INPUT);
+  pinMode(motorIn1, OUTPUT);
+  pinMode(motorIn2, OUTPUT);
+
+  lcd.setCursor(0, 0);
+  lcd.print("Parking System");
+  lcd.setCursor(0, 1);
+  lcd.print("Status: Ready");
+  delay(1000);
+  lcd.clear();
+  showStatus();
+}
+
+void loop() {
+  irState = digitalRead(irPin);
+
+  // Car detected: LOW signal from IR
+  if (irState == LOW && lastIrState == HIGH) {
+    if (carCount < maxSlots) {
+      carCount++;
+      lcd.setCursor(0, 0);
+      lcd.print("Car Incoming   ");
+      lcd.setCursor(0, 1);
+      lcd.print("Gate Opening   ");
+      openGate();
+      delay(2000);  // Time to enter
+
+      lcd.setCursor(0, 1);
+      lcd.print("Gate Closing   ");
+      closeGate();
+      delay(1000);
+    } else {
+      lcd.setCursor(0, 0);
+      lcd.print("Parking Full   ");
+      lcd.setCursor(0, 1);
+      lcd.print("Wait...        ");
+      delay(1000);
+    }
+
+    showStatus();
+  }
+
+  lastIrState = irState;
+}
+
+void openGate() {
+  digitalWrite(motorIn1, HIGH);
+  digitalWrite(motorIn2, LOW);
+  delay(1000); // Gate opens
+  stopMotor(); // Motor OFF
+}
+
+void closeGate() {
+  digitalWrite(motorIn1, LOW);
+  digitalWrite(motorIn2, HIGH);
+  delay(1000); // Gate closes
+  stopMotor(); // Motor OFF
+}
+
+void stopMotor() {
+  digitalWrite(motorIn1, LOW);
+  digitalWrite(motorIn2, LOW);
+}
+
+void showStatus() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Cars Inside: ");
+  lcd.print(carCount);
+
+  lcd.setCursor(0, 1);
+  lcd.print("Slots Left: ");
+  lcd.print(maxSlots - carCount);
+}
